@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+    <title>Health Route - Mi Salud</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 100dvh;
+            background: radial-gradient(circle at top left, #f0fdfa, #f8fafc);
+            color: #131b2e;
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: all 0.3s ease-in-out;
+        }
+        .glass-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .subtab-active {
+            background-color: #006c49 !important;
+            color: white !important;
+        }
+        .section-transition {
+            transition: opacity 0.25s ease-in-out, transform 0.25s ease-in-out;
+        }
+        .section-hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        .section-visible {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .haptic-feedback:active {
+            transform: scale(0.96);
+            transition: transform 0.1s;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .modal-overlay {
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(8px);
+        }
+        .btn-emerald-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+        .battery-level {
+            transition: height 0.5s ease-out;
+        }
+    </style>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#006c49",
+                        "secondary": "#10b981",
+                        "background": "#faf8ff",
+                        "surface": "#ffffff",
+                        "outline": "#6c7a71",
+                        "on-surface": "#131b2e"
+                    },
+                    spacing: {
+                        "touch-target-min": "56px",
+                        "container-margin": "20px",
+                        "card-padding": "20px"
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-900">
+
+<!-- Security Overlay -->
+<div class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6" id="security-overlay">
+    <div class="absolute inset-0 modal-overlay" onclick="closeSecurity()"></div>
+    <div class="glass-card w-full max-w-sm rounded-[2rem] p-8 relative z-[210] text-center border-white/40">
+        <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="material-symbols-outlined text-primary text-4xl">faceid</span>
+        </div>
+        <h3 class="text-xl font-extrabold text-slate-900 mb-2">Acceso Seguro</h3>
+        <p class="text-sm text-slate-500 mb-8">Confirma tu identidad para generar y compartir tu informe clínico consolidado.</p>
+        <button class="w-full btn-emerald-gradient text-white font-black py-4 rounded-2xl haptic-feedback mb-4" onclick="unlockAccess()">Confirmar con FaceID</button>
+        <button class="text-slate-400 font-bold text-sm" onclick="closeSecurity()">Cancelar</button>
+    </div>
+</div>
+
+<!-- SVGs -->
+<svg style="display: none;">
+    <symbol id="starry-happy" viewbox="0 0 200 200">
+        <g>
+            <path d="M 100 25 L 123.5 72.5 L 176 80 L 138 117 L 147 169.5 L 100 145 L 53 169.5 L 62 117 L 24 80 L 76.5 72.5 Z" fill="#facc15" stroke="#ca8a04" stroke-linejoin="round" stroke-width="2"></path>
+            <circle cx="85" cy="100" fill="#422006" r="5"></circle>
+            <circle cx="115" cy="100" fill="#422006" r="5"></circle>
+            <path d="M 85 115 Q 100 125 115 115" fill="none" stroke="#422006" stroke-linecap="round" stroke-width="3"></path>
+        </g>
+    </symbol>
+</svg>
+
+<!-- Header -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-container-margin h-16 glass-header">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full border-2 border-secondary overflow-hidden bg-white shadow-sm">
+            <img alt="Perfil" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqiblX-06xC_Hq9ZKAoGZL9wKbKfJ5NkNP8NSoU-IP6CuIJqUSiRHP0LGQLL65kl5O2GN2zAvn4wloi09GOL6PXbR5-Q-TCaMXz-1_ii9iqggn3SD_3WR8N0WiV6LgBN1cJPoKVrEoMrowrsYjz4Oe__u7qHvEXOwb_V5Xvgz5eHmIhK1Yt_PJr4ebh4oTTNsva9ZZCp7dl2PXcF3r7isw4gc0PIncJ7dzBfme_4Dc8aeFrBMa4-1MgD6eLEpzebGP5jweZMRKD7M"/>
+        </div>
+        <h1 class="font-bold text-lg text-slate-900" id="header-title">Mi Salud</h1>
+        <svg class="w-6 h-6"><use href="#starry-happy"></use></svg>
+    </div>
+    <button class="material-symbols-outlined text-secondary text-2xl haptic-feedback" style="font-variation-settings: 'FILL' 1;">military_tech</button>
+</header>
+
+<main class="pt-20 pb-32 px-container-margin min-h-screen">
+    
+    <!-- TAB 1: MI RUTA (Dashboard) -->
+    <div class="section-transition section-visible space-y-6" id="section-mi-ruta">
+        <!-- Astra AI Assistant Component -->
+        <div class="glass-card p-6 rounded-[2.5rem] border-white/40">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center border border-yellow-100">
+                    <svg class="w-6 h-6"><use href="#starry-happy"></use></svg>
+                </div>
+                <div>
+                    <p class="text-[10px] font-black text-yellow-600 uppercase tracking-widest">Astra AI</p>
+                    <p class="text-sm font-extrabold text-slate-900 leading-tight">¡Hola María! Soy Astra.</p>
+                </div>
+            </div>
+            <div class="relative mb-4">
+                <input class="w-full bg-white/50 border-none rounded-2xl py-4 pl-5 pr-12 text-sm font-medium focus:ring-2 focus:ring-primary/20" placeholder="¿Cómo te sientes hoy? Háblame o escribe..." type="text"/>
+                <button class="absolute right-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-primary">mic</button>
+            </div>
+            <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                <button class="whitespace-nowrap px-4 py-2 bg-white/60 border border-white/40 rounded-full text-[10px] font-black uppercase tracking-tight text-slate-600 haptic-feedback">🎙️ Dictar medicina nueva</button>
+                <button class="whitespace-nowrap px-4 py-2 bg-white/60 border border-white/40 rounded-full text-[10px] font-black uppercase tracking-tight text-slate-600 haptic-feedback">📊 Ver mis últimas presiones</button>
+                <button class="whitespace-nowrap px-4 py-2 bg-white/60 border border-white/40 rounded-full text-[10px] font-black uppercase tracking-tight text-slate-600 haptic-feedback">📤 Preparar reporte para el Dr.</button>
+            </div>
+        </div>
+
+        <!-- Comandante de Salud Card -->
+        <div class="glass-card p-6 rounded-[2.5rem] bg-gradient-to-br from-emerald-600 to-emerald-800 text-white border-none relative overflow-hidden">
+            <div class="relative z-10">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-[0.2em] opacity-80 mb-1">Comandante de Salud</h3>
+                        <p class="text-3xl font-black">2,450 PTS</p>
+                    </div>
+                    <span class="material-symbols-outlined text-4xl opacity-50">workspace_premium</span>
+                </div>
+                <div class="w-full bg-white/20 h-2 rounded-full overflow-hidden">
+                    <div class="bg-white h-full w-[75%] rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)]"></div>
+                </div>
+                <p class="text-[10px] font-bold mt-3 opacity-80">¡Estás a 550 pts de subir a Capitana!</p>
+            </div>
+        </div>
+
+        <!-- Interactive Gauges -->
+        <div class="grid grid-cols-2 gap-4">
+            <div class="glass-card p-5 rounded-[2rem] flex flex-col items-center text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Batería Humana</p>
+                <div class="w-12 h-20 border-4 border-slate-200 rounded-xl relative p-1 mb-3">
+                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-5 h-2 bg-slate-200 rounded-t-md"></div>
+                    <div class="w-full h-full bg-slate-50 rounded-md overflow-hidden flex flex-col justify-end">
+                        <div class="bg-emerald-500 w-full battery-level" style="height: 65%;"></div>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-emerald-600 leading-none">65%</p>
+                <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase">Buen Nivel</p>
+            </div>
+            <div class="glass-card p-5 rounded-[2rem] flex flex-col items-center text-center">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Medidor de Calma</p>
+                <div class="w-20 h-20 relative">
+                    <svg class="w-full h-full" viewbox="0 0 100 100">
+                        <circle cx="50" cy="50" fill="none" r="40" stroke="#f1f5f9" stroke-width="10"></circle>
+                        <circle cx="50" cy="50" fill="none" r="40" stroke="#0ea5e9" stroke-dasharray="251" stroke-dashoffset="180" stroke-linecap="round" stroke-width="10"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-sky-500">air</span>
+                    </div>
+                </div>
+                <p class="text-xl font-black text-sky-600 leading-none mt-3">82%</p>
+                <p class="text-[8px] font-bold text-slate-400 mt-1 uppercase">Turbulencia Baja</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: HISTORIAL CLINICO -->
+    <div class="section-transition section-hidden space-y-6" id="section-historial">
+        <!-- Historial Internal Sub-navigation -->
+        <div class="flex glass-card p-1 rounded-2xl overflow-x-auto hide-scrollbar">
+            <button class="flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all subtab-active duration-300" id="tab-btn-historial-clinica" onclick="switchHistorialSubTab('clinica')">Historial Clínico</button>
+            <button class="flex-1 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all duration-300" id="tab-btn-historial-diario" onclick="switchHistorialSubTab('diario')">Bitácora en Casa</button>
+        </div>
+
+        <!-- SUB-TAB A: Historial Clínico Base -->
+        <div class="space-y-6" id="historial-clinica">
+            <!-- Block 1: GPS Vital -->
+            <div class="space-y-3">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase">GPS VITAL (Últimos Registros)</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-card p-4 rounded-3xl relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase">Glucosa</span>
+                            <span class="text-[7px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Hoy, 7:15 AM</span>
+                        </div>
+                        <p class="text-2xl font-black text-slate-900">105 <span class="text-xs font-bold text-slate-400">mg/dL</span></p>
+                    </div>
+                    <div class="glass-card p-4 rounded-3xl relative">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[9px] font-black text-slate-400 uppercase">Presión</span>
+                            <span class="text-[7px] font-black bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Hoy, 7:15 AM</span>
+                        </div>
+                        <p class="text-2xl font-black text-slate-900">118/76 <span class="text-xs font-bold text-slate-400">mmHg</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Block 2: Metas de Peso con Relación de IMC -->
+            <div class="glass-card p-6 rounded-[2.5rem]">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] mb-6 uppercase text-center">ANÁLISIS DE PESO COHORTES</h4>
+                <div class="flex items-center justify-around mb-6">
+                    <div class="text-center">
+                        <p class="text-[9px] font-black text-slate-400 uppercase">Altura Fija</p>
+                        <p class="text-lg font-black text-slate-500">1.68 m</p>
+                    </div>
+                    <div class="relative w-28 h-28">
+                        <svg class="w-full h-full" viewbox="0 0 100 100">
+                            <circle cx="50" cy="50" fill="none" r="42" stroke="#f1f5f9" stroke-width="6"></circle>
+                            <circle cx="50" cy="50" fill="none" r="42" stroke="#eab308" stroke-dasharray="263" stroke-dashoffset="90" stroke-linecap="round" stroke-width="6"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-[9px] font-black text-slate-400 uppercase">IMC Actual</span>
+                            <span class="text-xl font-black text-amber-500">24.2</span>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-[9px] font-black text-slate-400 uppercase">Peso Actual</p>
+                        <input class="w-20 bg-white/60 border border-slate-200 text-center text-lg font-black text-primary py-1 px-2 rounded-xl focus:ring-2 focus:ring-primary/20" type="text" value="68.5"/>
+                        <p class="text-[8px] font-bold text-slate-400 mt-1">kg</p>
+                    </div>
+                </div>
+                <!-- Barra de meta explícita -->
+                <div class="bg-slate-100 rounded-2xl p-3 text-center border border-slate-200/50">
+                    <p class="text-xs font-extrabold text-slate-700">🎯 Tu Meta de Estabilización</p>
+                    <p class="text-[11px] text-slate-500 font-medium mt-1">Debes bajar <span class="text-primary font-black">3.5 kg</span> para ingresar al IMC Óptimo Verde (22.0)</p>
+                </div>
+            </div>
+
+            <!-- Block 3: Datos de Laboratorio Avanzados con Extracción de Foto por IA -->
+            <div class="space-y-4">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase">REPORTE OFICIAL DE LABORATORIO</h4>
+                <div class="glass-card p-6 rounded-[2.5rem] space-y-4">
+                    <button class="w-full py-4 border-2 border-dashed border-primary/30 bg-primary/5 rounded-2xl text-primary font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 haptic-feedback mb-2">
+                        <span class="material-symbols-outlined text-xl">lab_research</span>
+                        <span>📸 Escanear Laboratorio con IA</span>
+                    </button>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase">Hemoglobina Glicosilada (HbA1c)</label>
+                            <input class="w-full bg-white/50 border-none rounded-lg text-xs font-bold mt-1" type="text" value="6.1 %"/>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase">Colesterol Total</label>
+                            <input class="w-full bg-white/50 border-none rounded-lg text-xs font-bold mt-1" type="text" value="180 mg/dL"/>
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-[9px] font-black text-slate-400 uppercase">Triglicéridos</label>
+                            <input class="w-full bg-white/50 border-none rounded-lg text-xs font-bold mt-1" type="text" value="145 mg/dL"/>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase">Fecha del Examen</label>
+                            <input class="w-full bg-white/50 border-none rounded-lg text-xs font-bold mt-1" type="text" value="20/06/2026"/>
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase">Laboratorio / Procedencia</label>
+                            <input class="w-full bg-white/50 border-none rounded-lg text-xs font-bold mt-1" type="text" value="Laboratorio Raly (Panamá)"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUB-TAB B: Bitácora en Casa -->
+        <div class="space-y-4 hidden" id="historial-diario">
+            <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase">Frecuencia de Monitoreo Doméstico</h4>
+            <div class="glass-card p-6 rounded-[2.5rem] space-y-4">
+                <!-- Glucosa en Casa -->
+                <div class="p-4 bg-white/50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-slate-800">🩸 Glucosa Capilar</span>
+                        <span class="text-[8px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Ayunas / Postprandial</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input class="flex-1 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold" placeholder="Escribe o habla..." type="text" value="105 mg/dL"/>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">mic</button>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">photo_camera</button>
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-semibold">Historial: 102 mg/dL (Ayer) • 108 mg/dL (Hace 2 días)</p>
+                </div>
+                <!-- Presion en Casa -->
+                <div class="p-4 bg-white/50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-slate-800">🫀 Presión Arterial</span>
+                        <span class="text-[8px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded uppercase">Mañana y Noche</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input class="flex-1 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold" placeholder="Escribe o habla..." type="text" value="118/76 mmHg"/>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">mic</button>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">photo_camera</button>
+                    </div>
+                    <p class="text-[9px] text-slate-400 font-semibold">Historial: 120/80 mmHg • 115/74 mmHg</p>
+                </div>
+                <!-- Oximetria -->
+                <div class="p-4 bg-white/50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-slate-800">🫁 Oxigenación y Pulso</span>
+                        <span class="text-[8px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Al sentir fatiga</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input class="flex-1 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold" placeholder="Escribe valor..." type="text" value="98 %"/>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">mic</button>
+                    </div>
+                </div>
+                <!-- Cintura y Peso -->
+                <div class="p-4 bg-white/50 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-black text-slate-800">📏 Circunferencia Abdominal</span>
+                        <span class="text-[8px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded uppercase">Cada Domingo</span>
+                    </div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input class="flex-1 bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-bold" type="text" value="88 cm"/>
+                        <button class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center material-symbols-outlined text-slate-500 haptic-feedback">mic</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: MIS MEDICINAS (Flujo Reordenado en 3 Pasos) -->
+    <div class="section-transition section-hidden space-y-6" id="section-mis-pastillas">
+        <!-- New Sub-navigation Architecture Unificada -->
+        <div class="flex glass-card p-1 rounded-2xl overflow-x-auto hide-scrollbar sticky top-16 z-40">
+            <button class="flex-1 px-3 py-3 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all subtab-active duration-300" id="tab-btn-pills-rpm" onclick="switchPillsTab('rpm')">1. Mi Botiquín</button>
+            <button class="flex-1 px-3 py-3 rounded-xl text-[9px] font-black uppercase tracking-wider text-slate-400 transition-all duration-300" id="tab-btn-pills-diario" onclick="switchPillsTab('diario')">2. Mi Plan Diario</button>
+            <button class="flex-1 px-3 py-3 rounded-xl text-[9px] font-black uppercase tracking-wider text-slate-400 transition-all duration-300" id="tab-btn-pills-calendario" onclick="switchPillsTab('calendario')">3. Estado de Situación</button>
+        </div>
+
+        <!-- PASO 1: Mi Botiquín (Solo Formulario de Ingreso SFT y Contador) -->
+        <div class="space-y-4" id="pills-rpm">
+            <div class="flex items-center gap-2 px-2 bg-primary/5 py-2 rounded-xl border border-primary/10">
+                <span class="material-symbols-outlined text-primary">inventory</span>
+                <p class="text-[10px] font-black text-primary uppercase tracking-widest">📋 Tienes 3 medicamentos recetados activos</p>
+            </div>
+            
+            <div class="glass-card rounded-[2rem] p-6 border-white/40 space-y-4">
+                <h3 class="text-xs font-black text-slate-800 uppercase tracking-wider mb-2">➕ Registrar Nuevo Tratamiento</h3>
+                
+                <button class="w-full bg-slate-950 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2 haptic-feedback text-xs">
+                    <span class="material-symbols-outlined text-sm">photo_camera</span>
+                    <span>📸 Escanear Receta o Caja con IA</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Nombre Genérico[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="text" placeholder="Ej: Metformina" value="Metformina"/>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Nombre Comercial[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="text" placeholder="Ej: Glucophage" value="Glucophage"/>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Concentración[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="text" value="850 mg"/>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Frecuencia Médica[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="text" placeholder="Cada 12 horas, etc." value="Una vez al día"/>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Fecha Inicio[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="date" value="2026-01-01"/>
+                    </div>
+                    <div>
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Fecha Fin / Cese[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" placeholder="Permanente" type="text" value="Permanente"/>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-[9px] font-black text-slate-400 uppercase">Médico Prescriptor[cite: 1]</label>
+                        <input class="w-full bg-white border border-slate-200 rounded-xl text-xs mt-1 font-bold" type="text" value="Dr. Rodríguez (Endocrinología)"/>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <div class="aspect-video bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 haptic-feedback">
+                        <span class="material-symbols-outlined text-slate-400 text-sm">photo_camera</span>
+                        <p class="text-[8px] font-black text-slate-400 mt-1 uppercase">📸 Foto de la Caja[cite: 1]</p>
+                    </div>
+                    <div class="aspect-video bg-slate-50 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-slate-200 haptic-feedback">
+                        <span class="material-symbols-outlined text-slate-400 text-sm">medication</span>
+                        <p class="text-[8px] font-black text-slate-400 mt-1 uppercase">💊 Foto de la Pastilla[cite: 1]</p>
+                    </div>
+                </div>
+
+                <button class="w-full btn-emerald-gradient text-white text-xs font-black py-4 rounded-xl haptic-feedback tracking-widest uppercase mt-2">
+                    Guardar en Botiquín[cite: 1]
+                </button>
+            </div>
+        </div>
+
+        <!-- PASO 2: Mi Plan Diario (Limpio según Horarios de la Plantilla) -->
+        <div class="hidden space-y-6" id="pills-diario">
+            <!-- Al Despertar -->
+            <div class="space-y-2">
+                <h4 class="text-[10px] font-black text-emerald-600 tracking-[0.2em] px-2 uppercase flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">wb_twilight</span> Al Despertar
+                </h4>
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-emerald-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-black text-slate-900 text-sm">Levotiroxina (Eutirox) • 50mcg[cite: 1]</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5">Propósito: Control de Tiroides • 06:00 AM[cite: 1]</p>
+                        </div>
+                        <span class="material-symbols-outlined text-emerald-500">check_circle</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Tarde -->
+            <div class="space-y-2">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">light_mode</span> Tarde
+                </h4>
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-slate-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-black text-slate-900 text-sm">Metformina (Glucophage) • 850mg[cite: 1]</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5">Propósito: Control de azúcar • 14:00 PM[cite: 1]</p>
+                        </div>
+                        <button class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black haptic-feedback uppercase">Tomar</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Atardecer -->
+            <div class="space-y-2">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">wb_sunny</span> Atardecer
+                </h4>
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-slate-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-black text-slate-900 text-sm">Losartán (Nefrotal) • 50mg[cite: 1]</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5">Propósito: Presión Arterial • 19:00 PM[cite: 1]</p>
+                        </div>
+                        <button class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black haptic-feedback uppercase">Tomar</button>
+                    </div>
+                </div>
+            </div>
+            <!-- Antes de Dormir -->
+            <div class="space-y-2">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">bedtime</span> Antes de Dormir
+                </h4>
+                <div class="glass-card rounded-2xl p-4 border-l-4 border-slate-300">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-black text-slate-900 text-sm">Atorvastatina (Lipitor) • 20mg[cite: 1]</p>
+                            <p class="text-[10px] text-slate-500 font-bold uppercase mt-0.5">Propósito: Control Colesterol • 22:00 PM[cite: 1]</p>
+                        </div>
+                        <button class="bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-[10px] font-black haptic-feedback uppercase">Tomar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<!-- PASO 3: Estado de Situación (Optimizado y Proporcionado) -->
+        <div class="hidden space-y-5 pb-4" id="pills-calendario">
+            <!-- Anillo de Progreso Compacto -->
+            <div class="glass-card p-5 rounded-[2rem] flex items-center justify-between border-white/40 gap-4">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cumplimiento Global</h3>
+                    <p class="text-sm font-extrabold text-slate-900 mt-1 leading-tight">Tu Adherencia General</p>
+                    <p class="text-[10px] text-emerald-600 font-bold uppercase tracking-tight mt-1 bg-emerald-50 px-2 py-0.5 rounded inline-block">🎯 Nivel Óptimo</p>
+                </div>
+                <div class="relative w-24 h-24 flex-shrink-0">
+                    <svg class="w-full h-full" viewbox="0 0 100 100">
+                        <circle class="text-slate-100" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" stroke-width="8"></circle>
+                        <circle class="text-emerald-500 progress-ring-circle" cx="50" cy="50" fill="transparent" r="42" stroke="currentColor" stroke-dasharray="263" stroke-dashoffset="36" stroke-linecap="round" stroke-width="8"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-xl font-black text-slate-900">86%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adherence Grids Compactos y Proporcionados -->
+            <div class="space-y-3">
+                <h4 class="text-[10px] font-black text-slate-400 tracking-[0.2em] px-2 uppercase">Cumplimiento Semanal</h4>
+                <div class="glass-card p-4 rounded-3xl space-y-4">
+                    <!-- Fila: Metformina -->
+                    <div class="flex flex-col gap-2 border-b border-slate-100/50 pb-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-black text-slate-700 uppercase tracking-tight">💊 Metformina</span>
+                            <span class="text-[9px] font-bold text-emerald-600">4/4 Tomas</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center">
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">L</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">M</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">X</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">J</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">V</span><div class="w-7 h-7 rounded-lg bg-emerald-100 text-[10px] text-emerald-700 font-black flex items-center justify-center animate-pulse">●</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">S</span><div class="w-7 h-7 rounded-lg bg-slate-100 text-[10px] text-slate-300 font-bold flex items-center justify-center">-</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">D</span><div class="w-7 h-7 rounded-lg bg-slate-100 text-[10px] text-slate-300 font-bold flex items-center justify-center">-</div></div>
+                        </div>
+                    </div>
+                    <!-- Fila: Levotiroxina -->
+                    <div class="flex flex-col gap-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] font-black text-slate-700 uppercase tracking-tight">💊 Levotiroxina</span>
+                            <span class="text-[9px] font-bold text-amber-600">Alerta: 1 Olvido</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1 text-center">
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">L</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">M</span><div class="w-7 h-7 rounded-lg bg-rose-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✕</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">X</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">J</span><div class="w-7 h-7 rounded-lg bg-emerald-500 text-[10px] text-white font-black flex items-center justify-center shadow-sm">✓</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">V</span><div class="w-7 h-7 rounded-lg bg-slate-100 text-[10px] text-slate-300 font-bold flex items-center justify-center">-</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">S</span><div class="w-7 h-7 rounded-lg bg-slate-100 text-[10px] text-slate-300 font-bold flex items-center justify-center">-</div></div>
+                            <div class="flex flex-col items-center gap-1"><span class="text-[8px] text-slate-400 font-bold">D</span><div class="w-7 h-7 rounded-lg bg-slate-100 text-[10px] text-slate-300 font-bold flex items-center justify-center">-</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botón de Exportación Seguro -->
+            <div class="pt-2">
+                <button class="w-full btn-emerald-gradient text-white font-black py-4 rounded-2xl haptic-feedback flex items-center justify-center gap-2 shadow-lg" onclick="promptSecurity()">
+                    <span class="material-symbols-outlined text-lg">share_to_offices</span>
+                    <span class="text-xs uppercase tracking-wider">📤 Compartir con mi Médico</span>
+                </button>
+            </div>
+        </div>
+
+    <!-- TAB 4: SOPORTE (Monetización y Respuestas por Voz) -->
+    <div class="section-transition section-hidden space-y-6" id="section-soporte">
+        <div class="flex glass-card p-1 rounded-2xl">
+            <button class="flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all subtab-active duration-300" id="tab-btn-support-consul" onclick="switchSupportTab('consul')">Mi Consultoría</button>
+            <button class="flex-1 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all duration-300" id="tab-btn-support-chat" onclick="switchSupportTab('chat')">Chat en Vivo</button>
+        </div>
+
+        <!-- Sub-tab 1: Mi Consultoría (Monetización) -->
+        <div class="space-y-6" id="support-consul">
+            <div class="glass-card p-6 rounded-[2.5rem] bg-gradient-to-br from-slate-900 to-slate-800 text-white border-none">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <span class="text-[9px] font-black bg-emerald-500 px-2 py-0.5 rounded uppercase mb-2 inline-block">Revisión SFT Especializada</span>
+                        <h3 class="text-xl font-black leading-tight">¿Dudas con tu tratamiento o recetas de la CSS?</h3>
+                    </div>
+                    <span class="material-symbols-outlined text-4xl text-emerald-400">medical_services</span>
+                </div>
+                <p class="text-xs text-slate-300 font-medium mb-6 leading-relaxed">Agenda una videollamada de 20 min con un farmacéutico experto para validar contraindicaciones y armar tu plan maestro.</p>
+                <button class="w-full bg-white text-slate-900 font-black py-4 rounded-2xl haptic-feedback text-xs uppercase tracking-wider">📅 Agendar Videollamada</button>
+            </div>
+
+            <!-- Formulario conversacional por Voz -->
+            <div class="glass-card p-6 rounded-[2.5rem] text-center space-y-4">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Reporte Clínico Rápido por Voz</p>
+                <div class="flex justify-center gap-4">
+                    <button class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center gap-1 haptic-feedback">
+                        <span class="material-symbols-outlined text-amber-500 text-2xl">heart_broken</span>
+                        <span class="text-[9px] font-black text-slate-600 uppercase">🤢 Efecto Secundario</span>
+                    </button>
+                    <button class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center gap-1 haptic-feedback">
+                        <span class="material-symbols-outlined text-blue-500 text-2xl">help</span>
+                        <span class="text-[9px] font-black text-slate-600 uppercase">❓ Duda de Uso</span>
+                    </button>
+                </div>
+                <div class="flex flex-col items-center gap-2 py-2 bg-primary/5 rounded-2xl border border-dashed border-primary/20">
+                    <div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center haptic-feedback cursor-pointer animate-pulse">
+                        <span class="material-symbols-outlined text-primary text-2xl">mic</span>
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">"🎙️ Astra, me siento mareada con la pastilla..."</p>
+                    <p class="text-[8px] text-slate-400 font-bold uppercase">Toca para grabar y enviar reporte de voz</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub-tab 2: Chat en Vivo -->
+        <div class="hidden space-y-6" id="support-chat">
+            <div class="glass-card p-6 rounded-[2.5rem] flex flex-col h-[400px]">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4 mb-4">
+                    <div class="flex -space-x-2">
+                        <img class="w-8 h-8 rounded-full border-2 border-white bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHXG6K50F8jY3vD2fV0e5_z4qL1q5L1q5L1q5L1q5L1q5L1q5L1q5L1q5L1q5L1q"/>
+                        <img class="w-8 h-8 rounded-full border-2 border-white bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHXG6K50F8jY3vD2fV0e5_z4qL1q5L1q5L1q5L1q5L1q5L1q5L1q5L1q5L1q5L2q"/>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-xs font-black text-slate-900 uppercase">Farmacéuticos en Línea</p>
+                        <p class="text-[9px] font-bold text-emerald-500 uppercase">● Atendiendo desde Panamá</p>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto mb-4 space-y-4">
+                    <div class="bg-slate-100 rounded-2xl rounded-tl-none p-3 max-w-[80%]">
+                        <p class="text-xs font-medium text-slate-700">Hola María, ¿tienes alguna consulta sobre tus dosis del día de hoy?</p>
+                    </div>
+                </div>
+                <div class="relative">
+                    <input class="w-full bg-slate-100 border-none rounded-2xl py-4 pl-5 pr-12 text-sm font-medium focus:ring-1 focus:ring-primary/20" placeholder="Escribe un mensaje..." type="text"/>
+                    <div class="absolute right-3 top-1/2 -translate-y-1/2 flex gap-2">
+                        <button class="material-symbols-outlined text-slate-400 text-xl">photo_camera</button>
+                        <button class="material-symbols-outlined text-primary text-xl">send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Bottom Navigation (Sin manchas verdes de fondo, solo cambio de color de icono y texto) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-3 h-24 bg-white/70 backdrop-blur-md border-t border-white/40 rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.05)]">
+    <button class="flex flex-col items-center justify-center gap-1" id="nav-mi-ruta" onclick="navigate('mi-ruta')">
+        <div class="w-12 h-8 flex items-center justify-center transition-all duration-300 text-primary" id="nav-indicator-mi-ruta">
+            <span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+        </div>
+        <span class="text-[9px] font-black uppercase tracking-widest text-primary">Ruta</span>
+    </button>
+    <button class="flex flex-col items-center justify-center gap-1" id="nav-historial" onclick="navigate('historial')">
+        <div class="w-12 h-8 flex items-center justify-center transition-all duration-300 text-slate-500" id="nav-indicator-historial">
+            <span class="material-symbols-outlined text-xl">analytics</span>
+        </div>
+        <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Historial</span>
+    </button>
+    <button class="flex flex-col items-center justify-center gap-1" id="nav-mis-pastillas" onclick="navigate('mis-pastillas')">
+        <div class="w-12 h-8 flex items-center justify-center transition-all duration-300 text-slate-500" id="nav-indicator-mis-pastillas">
+            <span class="material-symbols-outlined text-xl">pill</span>
+        </div>
+        <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Medicinas</span>
+    </button>
+    <button class="flex flex-col items-center justify-center gap-1" id="nav-soporte" onclick="navigate('soporte')">
+        <div class="w-12 h-8 flex items-center justify-center transition-all duration-300 text-slate-500" id="nav-indicator-soporte">
+            <span class="material-symbols-outlined text-xl">support_agent</span>
+        </div>
+        <span class="text-[9px] font-black uppercase tracking-widest text-slate-500">Soporte</span>
+    </button>
+</nav>
+
+<script>
+    function navigate(sectionId) {
+        switchTab(sectionId);
+    }
+
+    function switchTab(sectionId) {
+        const sections = ['mi-ruta', 'historial', 'mis-pastillas', 'soporte'];
+        const titles = {
+            'mi-ruta': 'Mi Salud',
+            'historial': 'Historial Clínico',
+            'mis-pastillas': 'Mis Medicinas',
+            'soporte': 'Soporte Directo'
+        };
+
+        sections.forEach(s => {
+            const el = document.getElementById('section-' + s);
+            const indicator = document.getElementById('nav-indicator-' + s);
+            const btn = document.getElementById('nav-' + s);
+            const label = btn.querySelector('span:last-child');
+            const icon = indicator.querySelector('.material-symbols-outlined');
+
+            if (s === sectionId) {
+                el.classList.remove('section-hidden');
+                el.classList.add('section-visible');
+                indicator.classList.remove('text-slate-500');
+                indicator.classList.add('text-primary');
+                label.classList.remove('text-slate-500');
+                label.classList.add('text-primary');
+                icon.style.fontVariationSettings = "'FILL' 1";
+            } else {
+                el.classList.add('section-hidden');
+                el.classList.remove('section-visible');
+                indicator.classList.remove('text-primary');
+                indicator.classList.add('text-slate-500');
+                label.classList.remove('text-primary');
+                label.classList.add('text-slate-500');
+                icon.style.fontVariationSettings = "'FILL' 0";
+            }
+        });
+
+        document.getElementById('header-title').innerText = titles[sectionId];
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function switchPillsTab(tab) {
+        ['rpm', 'diario', 'calendario'].forEach(t => {
+            const btn = document.getElementById('tab-btn-pills-' + t);
+            const content = document.getElementById('pills-' + t);
+            if(t === tab) {
+                btn.classList.add('subtab-active');
+                btn.classList.remove('text-slate-400');
+                content.classList.remove('hidden');
+            } else {
+                btn.classList.remove('subtab-active');
+                btn.classList.add('text-slate-400');
+                content.classList.add('hidden');
+            }
+        });
+    }
+
+    function switchHistorialSubTab(tab) {
+        ['clinica', 'diario'].forEach(t => {
+            const btn = document.getElementById('tab-btn-historial-' + t);
+            const content = document.getElementById('historial-' + t);
+            if(t === tab) {
+                btn.classList.add('subtab-active');
+                btn.classList.remove('text-slate-400');
+                content.classList.remove('hidden');
+            } else {
+                btn.classList.remove('subtab-active');
+                btn.classList.add('text-slate-400');
+                content.classList.add('hidden');
+            }
+        });
+    }
+
+    function switchSupportTab(tab) {
+        ['consul', 'chat'].forEach(t => {
+            const btn = document.getElementById('tab-btn-support-' + t);
+            const content = document.getElementById('support-' + t);
+            if(t === tab) {
+                btn.classList.add('subtab-active');
+                btn.classList.remove('text-slate-400');
+                content.classList.remove('hidden');
+            } else {
+                btn.classList.remove('subtab-active');
+                btn.classList.add('text-slate-400');
+                content.classList.add('hidden');
+            }
+        });
+    }
+
+    let securityCallback = null;
+    function promptSecurity(callback) {
+        securityCallback = callback;
+        document.getElementById('security-overlay').classList.remove('hidden');
+    }
+
+    function unlockAccess() {
+        document.getElementById('security-overlay').classList.add('hidden');
+        alert("🔒 ¡Identidad confirmada mediante FaceID! Reporte Maestro SFT PDF generado con éxito. Abriendo WhatsApp para compartir...");
+        if (securityCallback) securityCallback();
+        securityCallback = null;
+    }
+
+    function closeSecurity() {
+        document.getElementById('security-overlay').classList.add('hidden');
+        securityCallback = null;
+    }
+
+    // Initialize state
+    switchPillsTab('rpm');
+    switchHistorialSubTab('clinica');
+</script>
+</body>
+</html>
