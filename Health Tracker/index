@@ -644,8 +644,8 @@
     // 1. CONFIGURACIÓN E INICIALIZACIÓN SUPABASE
     // ==========================================
     // REEMPLAZA ESTAS DOS VARIABLES CON TUS DATOS DE SUPABASE DE UNA VEZ
-    const SUPABASE_URL = "https://TU_PROYECTO.supabase.co"; 
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIi...TU_LLAVE";
+   const SUPABASE_URL = "https://ydkykhkbvqjzxkaqxakg.supabase.co"; 
+   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlka3lraGtidnFqenhrYXF4YWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5ODM1MjksImV4cCI6MjA5ODU1OTUyOX0.tOUOjrBjNex4afmDu1lk9higsFNKxBzZACKp8uK7nOw";
     
     let supabaseClient = null;
     let usuarioConectado = null;
